@@ -9,13 +9,10 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#0c0c10;--s1:#15151a;--s2:#1e1e26;
-  --border:#2a2a35;--border2:#363645;
-  --p:#a78bfa;--p2:#c4b5fd;
+  --border:#2a2a35;--p:#a78bfa;--p2:#c4b5fd;
   --pdim:rgba(167,139,250,.12);--pglow:rgba(167,139,250,.22);
-  --cy:#67e8f9;
-  --text:#eeedf2;--muted:#8b8a99;--dim:#4a4958;
-  --err:#f87171;--ok:#4ade80;--warn:#fbbf24;
-  --r:14px;--rs:9px
+  --cy:#67e8f9;--text:#eeedf2;--muted:#8b8a99;--dim:#4a4958;
+  --err:#f87171;--ok:#4ade80;--r:14px;--rs:9px
 }
 body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 .bg-fx{position:fixed;inset:0;pointer-events:none;z-index:0}
@@ -29,14 +26,14 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 .w{position:relative;z-index:1}
 
 /* NAV */
-nav{display:flex;align-items:center;justify-content:space-between;padding:17px 34px;
+nav{display:flex;align-items:center;justify-content:space-between;padding:15px 28px;
     border-bottom:1px solid var(--border);backdrop-filter:blur(20px);
-    background:rgba(12,12,16,.9);position:sticky;top:0;z-index:100}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
-.logo-mark{width:33px;height:33px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;
-  background:linear-gradient(135deg,#a78bfa,#67e8f9);box-shadow:0 0 18px rgba(167,139,250,.3)}
-.logo-name{font-weight:700;font-size:18px;letter-spacing:-.4px}
-.lh{color:var(--p)}.lt{color:var(--cy)}
+    background:rgba(12,12,16,.92);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--text)}
+/* Logo SVG baru — hexagon gradient modern */
+.logo-icon{width:36px;height:36px;flex-shrink:0}
+.logo-name{font-weight:800;font-size:19px;letter-spacing:-.5px;line-height:1}
+.logo-name .lh{background:linear-gradient(90deg,#a78bfa,#67e8f9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .nav-r{display:flex;align-items:center;gap:7px}
 .n-ok{display:flex;align-items:center;gap:5px;font-size:11px;font-family:'JetBrains Mono',monospace;
   color:var(--ok);background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);padding:4px 10px;border-radius:20px}
@@ -96,8 +93,8 @@ h1{font-size:clamp(31px,5.5vw,54px);font-weight:700;line-height:1.09;letter-spac
 /* CARDS */
 .mcard{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:13px}
 .row-aut{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border)}
-.ava{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--p),#7c3aed);
-  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;flex-shrink:0;overflow:hidden}
+.ava{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--p),#7c3aed);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff;flex-shrink:0;overflow:hidden}
 .ava img{width:100%;height:100%;object-fit:cover}
 .aname{font-size:13.5px;font-weight:600}
 .ahandle{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
@@ -107,10 +104,8 @@ h1{font-size:clamp(31px,5.5vw,54px);font-weight:700;line-height:1.09;letter-spac
 .tv{background:rgba(103,232,249,.1);color:var(--cy);border:1px solid rgba(103,232,249,.2)}
 .tp{background:rgba(167,139,250,.1);color:var(--p2);border:1px solid rgba(167,139,250,.2)}
 .mtitle{font-size:13px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-/* VIDEO PREVIEW */
 .vprev{position:relative;background:#050508;overflow:hidden}
-.vprev img{width:100%;height:210px;object-fit:cover;display:block;opacity:.72}
+.vprev img{width:100%;height:210px;object-fit:cover;display:block;opacity:.8}
 .vover{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.2)}
 .pcircle{width:54px;height:54px;background:rgba(255,255,255,.12);backdrop-filter:blur(12px);
   border-radius:50%;display:flex;align-items:center;justify-content:center;
@@ -118,8 +113,6 @@ h1{font-size:clamp(31px,5.5vw,54px);font-weight:700;line-height:1.09;letter-spac
 .vmeta{position:absolute;bottom:10px;left:10px;right:10px;display:flex;gap:6px;flex-wrap:wrap}
 .vtag{font-size:10px;font-family:'JetBrains Mono',monospace;background:rgba(0,0,0,.65);
   border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.7);padding:2px 8px;border-radius:5px}
-
-/* PHOTO GRID */
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:3px;padding:3px}
 .pitem{position:relative;overflow:hidden;aspect-ratio:9/16;background:var(--s2);border-radius:5px}
 .pitem img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
@@ -135,8 +128,9 @@ h1{font-size:clamp(31px,5.5vw,54px);font-weight:700;line-height:1.09;letter-spac
 .dsec-b{padding:12px}
 .dl-list{display:flex;flex-direction:column;gap:8px}
 .dlb{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--rs);
-  border:1px solid var(--border);background:var(--s2);text-decoration:none;color:var(--text);transition:all .2s}
-.dlb:hover{border-color:var(--p);background:var(--pdim);transform:translateX(4px)}
+  border:1px solid var(--border);background:var(--s2);cursor:pointer;transition:all .2s;color:var(--text)}
+.dlb:hover{border-color:var(--p);background:var(--pdim);transform:translateX(3px)}
+.dlb:active{transform:translateX(1px);opacity:.8}
 .dlb-ic{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .iv{background:rgba(103,232,249,.1)}.ia{background:var(--pdim)}.ip{background:rgba(74,222,128,.07)}
 .dlb-inf{flex:1}
@@ -144,18 +138,15 @@ h1{font-size:clamp(31px,5.5vw,54px);font-weight:700;line-height:1.09;letter-spac
 .dlb-sub{font-size:10.5px;color:var(--muted);margin-top:1px;font-family:'JetBrains Mono',monospace}
 .dlb-arr{color:var(--dim);font-size:16px;transition:all .2s;flex-shrink:0}
 .dlb:hover .dlb-arr{transform:translateX(3px);color:var(--p)}
+/* downloading state */
+.dlb.downloading{opacity:.6;cursor:not-allowed}
+.dlb.downloading .dlb-arr{animation:spin .6s linear infinite}
 .sep{height:1px;background:var(--border);margin:4px 0}
 
 footer{border-top:1px solid var(--border);padding:24px 34px;text-align:center;
   color:var(--dim);font-size:11px;font-family:'JetBrains Mono',monospace;line-height:2}
 footer a{color:var(--p);text-decoration:none}
-
-@media(max-width:560px){
-  nav{padding:13px 14px}
-  .hero{padding:50px 14px 40px}
-  .pgrid{grid-template-columns:repeat(3,1fr)}
-  h1{letter-spacing:-1.1px}
-}
+@media(max-width:560px){nav{padding:13px 14px}.hero{padding:50px 14px 40px}.pgrid{grid-template-columns:repeat(3,1fr)}h1{letter-spacing:-1.1px}}
 </style>
 </head>
 <body>
@@ -164,8 +155,27 @@ footer a{color:var(--p);text-decoration:none}
 
 <nav>
   <a class="logo" href="#">
-    <div class="logo-mark">⬡</div>
-    <div class="logo-name"><span class="lh">Hexa</span><span class="lt">Tok</span></div>
+    <!-- Logo SVG: hexagon dengan gradient + play button -->
+    <svg class="logo-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="lg1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#a78bfa"/>
+          <stop offset="100%" stop-color="#67e8f9"/>
+        </linearGradient>
+        <linearGradient id="lg2" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#7c3aed"/>
+          <stop offset="100%" stop-color="#0891b2"/>
+        </linearGradient>
+      </defs>
+      <!-- Hexagon background -->
+      <path d="M18 2L32 10V26L18 34L4 26V10L18 2Z" fill="url(#lg2)" opacity="0.9"/>
+      <path d="M18 2L32 10V26L18 34L4 26V10L18 2Z" stroke="url(#lg1)" stroke-width="1" fill="none" opacity="0.6"/>
+      <!-- Play triangle -->
+      <path d="M15 12L15 24L25 18L15 12Z" fill="white" opacity="0.95"/>
+      <!-- Glow dot -->
+      <circle cx="27" cy="9" r="3" fill="#67e8f9" opacity="0.8"/>
+    </svg>
+    <div class="logo-name"><span class="lh">HexaTok</span></div>
   </a>
   <div class="nav-r">
     <div class="n-ok">Online</div>
@@ -215,27 +225,19 @@ footer a{color:var(--p);text-decoration:none}
 
 </div>
 <script>
-// ⬇ GANTI INI dengan URL Vercel kamu setelah deploy
-// Contoh: const API = 'https://hexatok-raynedvd.vercel.app/api/download';
 const API = 'https://hexatok-19dh.vercel.app/api/download';
 
 async function run() {
   const url = document.getElementById('urlIn').value.trim();
   if (!url) return showErr('Masukkan URL TikTok terlebih dahulu.');
   if (!url.includes('tiktok.com') && !url.includes('vt.tiktok')) return showErr('Hanya mendukung link dari TikTok.');
-
   hideErr(); hideResult();
   setLoad(true);
   document.getElementById('btnGo').disabled = true;
-
   try {
     const res = await fetch(`${API}?url=${encodeURIComponent(url)}`);
     const data = await res.json();
-
-    if (!res.ok || data.status === 'error') {
-      throw new Error(data.message || 'Gagal mengambil konten.');
-    }
-
+    if (!res.ok || data.status === 'error') throw new Error(data.message || 'Gagal mengambil konten.');
     render(data);
   } catch(e) {
     showErr(e.message || 'Gagal terhubung ke server.');
@@ -247,15 +249,13 @@ async function run() {
 
 function render(d) {
   const isSlide = d.type === 'photo' && d.images && d.images.length > 0;
-  const name = d.author?.nickname || 'TikTok User';
+  const name   = d.author?.nickname || 'TikTok User';
   const handle = d.author?.unique_id ? '@' + d.author.unique_id : '@user';
   const avatar = d.author?.avatar || '';
-  const init = (name[0]||'T').toUpperCase();
-  const dur = d.duration ? fmtDur(d.duration) : '';
-
+  const init   = (name[0]||'T').toUpperCase();
+  const dur    = d.duration ? fmtDur(d.duration) : '';
   let h = '';
 
-  // MEDIA CARD
   h += `<div class="mcard">`;
   h += `<div class="row-aut">
     <div class="ava">${avatar?`<img src="${x(avatar)}" onerror="this.style.display='none';this.parentElement.textContent='${init}'"/>`:init}</div>
@@ -282,33 +282,56 @@ function render(d) {
   }
   h += `</div>`;
 
-  // DOWNLOAD SECTION
   h += `<div class="dsec"><div class="dsec-h">↓ Pilihan Unduhan</div><div class="dsec-b"><div class="dl-list">`;
-
   let any = false;
   if (isSlide) {
-    d.images.forEach((url,i) => { any=true; h+=dlb('ip','🖼',`Unduh Foto ${i+1}`,'JPG · Tanpa watermark',url,`hexatok_foto_${i+1}.jpg`); });
-    if (d.audio_url) { any=true; h+=`<div class="sep"></div>`; h+=dlb('ia','🎵','Unduh MP3','Audio slideshow',d.audio_url,'hexatok_audio.mp3'); }
+    d.images.forEach((url,i) => {
+      any = true;
+      h += dlbBtn('ip','🖼',`Unduh Foto ${i+1}`,'JPG · Tanpa watermark', url, `hexatok_foto_${i+1}.jpg`);
+    });
+    if (d.audio_url) { any=true; h+=`<div class="sep"></div>`; h+=dlbBtn('ia','🎵','Unduh MP3','Audio slideshow',d.audio_url,'hexatok_audio.mp3'); }
   } else {
-    if (d.hd_url) { any=true; h+=dlb('iv','🎬','Unduh MP4 · HD','Tanpa watermark · Kualitas terbaik',d.hd_url,'hexatok_hd.mp4'); }
-    if (d.sd_url && d.sd_url!==d.hd_url) { any=true; h+=dlb('iv','📹','Unduh MP4 · SD','File lebih kecil',d.sd_url,'hexatok_sd.mp4'); }
-    if (d.audio_url) { any=true; h+=`<div class="sep"></div>`; h+=dlb('ia','🎵','Unduh MP3 Saja','Audio dari video',d.audio_url,'hexatok_audio.mp3'); }
+    if (d.hd_url)  { any=true; h+=dlbBtn('iv','🎬','Unduh MP4 · HD','Tanpa watermark · Kualitas terbaik',d.hd_url,'hexatok_hd.mp4'); }
+    if (d.sd_url)  { any=true; h+=dlbBtn('iv','📹','Unduh MP4 · SD','File lebih kecil',d.sd_url,'hexatok_sd.mp4'); }
+    if (d.audio_url) { any=true; h+=`<div class="sep"></div>`; h+=dlbBtn('ia','🎵','Unduh MP3 Saja','Audio dari video',d.audio_url,'hexatok_audio.mp3'); }
   }
-
-  if (!any) {
-    h += `<div style="padding:18px;text-align:center;color:var(--muted);font-size:13px">❌ Link download tidak ditemukan dari API.</div>`;
-  }
-
+  if (!any) h += `<div style="padding:18px;text-align:center;color:var(--muted);font-size:13px">❌ Link download tidak ditemukan dari API.</div>`;
   h += `</div></div></div>`;
   showResult(h);
 }
 
-function dlb(ic,icon,lbl,sub,href,fn) {
-  return `<a class="dlb" href="${x(href)}" download="${fn}" target="_blank">
+// Download paksa via fetch blob — tidak buka tab baru
+function dlbBtn(ic, icon, lbl, sub, href, filename) {
+  const safeHref = x(href);
+  const safeFn   = x(filename);
+  return `<div class="dlb" onclick="forceDownload('${safeHref}','${safeFn}',this)">
     <div class="dlb-ic ${ic}">${icon}</div>
     <div class="dlb-inf"><div class="dlb-lbl">${lbl}</div><div class="dlb-sub">${sub}</div></div>
-    <span class="dlb-arr">→</span>
-  </a>`;
+    <span class="dlb-arr">↓</span>
+  </div>`;
+}
+
+async function forceDownload(url, filename, el) {
+  if (el.classList.contains('downloading')) return;
+  el.classList.add('downloading');
+  el.querySelector('.dlb-arr').textContent = '↻';
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Gagal fetch');
+    const blob = await res.blob();
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  } catch(e) {
+    // Fallback: buka di tab baru kalau fetch gagal (CORS dll)
+    window.open(url, '_blank');
+  } finally {
+    el.classList.remove('downloading');
+    el.querySelector('.dlb-arr').textContent = '↓';
+  }
 }
 
 function setLoad(v) { document.getElementById('loader').classList.toggle('on',v); }
@@ -323,7 +346,6 @@ function showResult(h) { const el=document.getElementById('result'); el.innerHTM
 function hideResult() { const el=document.getElementById('result'); el.innerHTML=''; el.classList.remove('on'); }
 function fmtDur(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
 function x(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-
 document.getElementById('urlIn').addEventListener('keydown', e => { if(e.key==='Enter') run(); });
 </script>
 </body>
