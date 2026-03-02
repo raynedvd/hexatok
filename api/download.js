@@ -14,108 +14,136 @@ module.exports = async (req, res) => {
   const url = req.query.url || (req.body && req.body.url);
   if (!url) return res.status(400).json({ status: "error", message: "Parameter 'url' diperlukan" });
 
-  // MODE: proxy gambar supaya tidak kena hotlink block
-  // /api/download?proxy=1&url=https://...
+  // Proxy mode untuk gambar (bypass hotlink)
   if (req.query.proxy === "1" && req.query.url?.startsWith("http")) {
     try {
-      const fetch = (await import("node-fetch")).default;
-      const imgRes = await fetch(req.query.url, {
+      const https = require("https");
+      const http  = require("http");
+      const imgUrl = new URL(req.query.url);
+      const client = imgUrl.protocol === "https:" ? https : http;
+      const imgReq = client.get(req.query.url, {
         headers: {
           "Referer": "https://www.tiktok.com/",
           "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15"
         }
+      }, (imgRes) => {
+        res.setHeader("Content-Type", imgRes.headers["content-type"] || "image/jpeg");
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        imgRes.pipe(res);
       });
-      res.setHeader("Content-Type", imgRes.headers.get("content-type") || "image/jpeg");
-      res.setHeader("Cache-Control", "public, max-age=86400");
-      return imgRes.body.pipe(res);
+      imgReq.on("error", () => res.status(500).end());
+      return;
     } catch(e) {
       return res.status(500).end();
     }
   }
 
   try {
-    let result = null;
-    let usedVersion = null;
+    // Jalankan SEMUA versi paralel, lalu gabungkan hasilnya
+    const tryAll = await Promise.allSettled(
+      ["v1", "v2", "v3"].map(version =>
+        Downloader(url, { version }).catch(e => ({ status: "error", _err: e.message }))
+      )
+    );
 
-    for (const version of ["v1", "v2", "v3"]) {
-      try {
-        const r = await Downloader(url, { version });
-        if (r && r.status === "success") {
-          result = r;
-          usedVersion = version;
-          break;
-        }
-      } catch(e) { continue; }
+    // Ambil semua yang berhasil
+    const results = tryAll
+      .filter(r => r.status === "fulfilled" && r.value?.status === "success")
+      .map(r => r.value.result);
+
+    if (results.length === 0) {
+      return res.status(500).json({ status: "error", message: "Semua versi API gagal. Coba lagi nanti." });
     }
 
-    if (!result) return res.status(500).json({ status: "error", message: "Semua versi API gagal" });
+    // Gabungkan — ambil field terbaik dari semua versi
+    const merge = (fn) => {
+      for (const d of results) {
+        const val = fn(d);
+        if (val) return val;
+      }
+      return null;
+    };
 
-    const d = result.result;
+    const d0 = results[0]; // versi utama
 
-    const isPhoto = d?.type === "image" ||
-                    (Array.isArray(d?.images) && d.images.length > 0);
+    const isPhoto = results.some(d =>
+      d?.type === "image" ||
+      (Array.isArray(d?.images) && d.images.length > 0)
+    );
 
-    // Video URLs — v1 return array, v2/v3 return object
-    let hd_url = null, sd_url = null;
+    // Video URL — v1 return array, v2/v3 return object
+    const hd_url = merge(d => {
+      if (Array.isArray(d?.video)) return d.video[0];
+      if (d?.video && typeof d.video === "object") {
+        return d.video.noWatermark || d.video.noWatermark2 ||
+               d.video.hdplay || d.video.playAddr || d.video.play;
+      }
+      return null;
+    });
 
-    if (Array.isArray(d?.video)) {
-      // v1 format: array of URLs
-      hd_url = d.video[0] || null;
-      sd_url = d.video[1] && d.video[1] !== hd_url ? d.video[1] : null;
-    } else if (d?.video && typeof d.video === "object") {
-      // v2/v3 format: object dengan fields
-      hd_url = d.video.noWatermark || d.video.noWatermark2 ||
-               d.video.hdplay || d.video.playAddr || d.video.play || null;
-      sd_url = d.video.watermark || d.video.downloadAddr || null;
-      if (sd_url === hd_url) sd_url = null;
-    }
+    const sd_url_raw = merge(d => {
+      if (Array.isArray(d?.video)) return d.video[1];
+      if (d?.video && typeof d.video === "object") {
+        return d.video.watermark || d.video.downloadAddr;
+      }
+      return null;
+    });
+    const sd_url = sd_url_raw && sd_url_raw !== hd_url ? sd_url_raw : null;
 
-    // Audio
-    const audio_url = d?.music?.playUrl || d?.music?.play_url ||
-                      d?.music?.url || null;
+    // Audio — coba semua kemungkinan field
+    const audio_url = merge(d => {
+      if (typeof d?.music === "string" && d.music.startsWith("http")) return d.music;
+      return d?.music?.playUrl || d?.music?.play_url ||
+             d?.music?.url || d?.music?.playurl || null;
+    });
 
-    // Cover — v1 return array
-    const coverRaw = Array.isArray(d?.cover) ? d.cover[0] :
-                     (d?.cover || d?.video?.cover || null);
+    // Cover
+    const coverRaw = merge(d => {
+      if (Array.isArray(d?.cover)) return d.cover[0];
+      if (typeof d?.cover === "string" && d.cover.startsWith("http")) return d.cover;
+      if (Array.isArray(d?.video?.cover)) return d.video.cover[0];
+      if (typeof d?.video?.cover === "string") return d.video.cover;
+      if (Array.isArray(d?.dynamicCover)) return d.dynamicCover[0];
+      return null;
+    });
 
-    // Proxy URL gambar supaya tidak kena hotlink
+    // Avatar
+    const avatarRaw = merge(d =>
+      d?.author?.avatarThumb || d?.author?.avatarMedium ||
+      d?.author?.avatarLarger || d?.author?.avatar || null
+    );
+
+    // Proxy helper
     const BASE = `https://${req.headers.host}`;
-    const proxyCover = coverRaw
-      ? `${BASE}/api/download?proxy=1&url=${encodeURIComponent(coverRaw)}`
-      : null;
-
-    // Author
-    const avatarRaw = d?.author?.avatarThumb || d?.author?.avatarMedium ||
-                      d?.author?.avatarLarger || d?.author?.avatar || null;
-    const proxyAvatar = avatarRaw
-      ? `${BASE}/api/download?proxy=1&url=${encodeURIComponent(avatarRaw)}`
-      : null;
+    const px = (u) => u ? `${BASE}/api/download?proxy=1&url=${encodeURIComponent(u)}` : null;
 
     // Images slideshow
     let images = null;
-    if (isPhoto && Array.isArray(d?.images)) {
-      images = d.images
+    if (isPhoto) {
+      const rawImgs = merge(d =>
+        Array.isArray(d?.images) && d.images.length > 0 ? d.images : null
+      ) || [];
+      images = rawImgs
         .map(img => typeof img === "string" ? img : (img?.url || img?.urlList?.[0] || null))
         .filter(Boolean)
-        .map(imgUrl => `${BASE}/api/download?proxy=1&url=${encodeURIComponent(imgUrl)}`);
+        .map(px);
     }
 
     return res.status(200).json({
       status   : "ok",
       type     : isPhoto ? "photo" : "video",
-      title    : d?.desc || d?.description || d?.title || "",
+      title    : merge(d => d?.desc || d?.description || d?.title || d?.caption) || "",
       author   : {
-        nickname : d?.author?.nickname || "TikTok User",
-        unique_id: d?.author?.uniqueId || d?.author?.unique_id || "user",
-        avatar   : proxyAvatar
+        nickname : merge(d => d?.author?.nickname || d?.author?.name) || "TikTok User",
+        unique_id: merge(d => d?.author?.uniqueId || d?.author?.unique_id) || "user",
+        avatar   : px(avatarRaw)
       },
-      cover    : proxyCover,
-      duration : parseInt(d?.duration) || 0,
+      cover    : px(coverRaw),
+      duration : merge(d => parseInt(d?.duration)) || 0,
       hd_url,
       sd_url,
       audio_url,
-      images,
-      _version : usedVersion
+      images
     });
 
   } catch (err) {
