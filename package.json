@@ -1,0 +1,15 @@
+{
+  "name": "hexatok-api",
+  "version": "1.0.0",
+  "description": "HexaTok - TikTok Downloader API Backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "node api/download.js"
+  },
+  "dependencies": {
+    "@tobyg74/tiktok-api-dl": "^1.2.8"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}
