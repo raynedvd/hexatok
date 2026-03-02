@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>HexaTok — Download TikTok Tanpa Watermark</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0c10;--s1:#15151a;--s2:#1e1e26;
+  --border:#2a2a35;--border2:#363645;
+  --p:#a78bfa;--p2:#c4b5fd;
+  --pdim:rgba(167,139,250,.12);--pglow:rgba(167,139,250,.22);
+  --cy:#67e8f9;
+  --text:#eeedf2;--muted:#8b8a99;--dim:#4a4958;
+  --err:#f87171;--ok:#4ade80;--warn:#fbbf24;
+  --r:14px;--rs:9px
+}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.bg-fx{position:fixed;inset:0;pointer-events:none;z-index:0}
+.bg-fx::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 45% at 15% -5%,rgba(167,139,250,.08) 0%,transparent 55%),
+             radial-gradient(ellipse 55% 35% at 85% 105%,rgba(103,232,249,.06) 0%,transparent 50%)}
+.grid{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(167,139,250,.03) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(167,139,250,.03) 1px,transparent 1px);
+  background-size:60px 60px}
+.w{position:relative;z-index:1}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:17px 34px;
+    border-bottom:1px solid var(--border);backdrop-filter:blur(20px);
+    background:rgba(12,12,16,.9);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+.logo-mark{width:33px;height:33px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;
+  background:linear-gradient(135deg,#a78bfa,#67e8f9);box-shadow:0 0 18px rgba(167,139,250,.3)}
+.logo-name{font-weight:700;font-size:18px;letter-spacing:-.4px}
+.lh{color:var(--p)}.lt{color:var(--cy)}
+.nav-r{display:flex;align-items:center;gap:7px}
+.n-ok{display:flex;align-items:center;gap:5px;font-size:11px;font-family:'JetBrains Mono',monospace;
+  color:var(--ok);background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.2);padding:4px 10px;border-radius:20px}
+.n-ok::before{content:'';width:5px;height:5px;background:var(--ok);border-radius:50%;animation:blink 2s ease-in-out infinite}
+.n-pill{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);
+  border:1px solid var(--border);padding:4px 10px;border-radius:20px;background:var(--s1)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* HERO */
+.hero{text-align:center;padding:80px 20px 55px;max-width:700px;margin:0 auto}
+.chip{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-family:'JetBrains Mono',monospace;
+  color:var(--p2);background:var(--pdim);border:1px solid rgba(167,139,250,.2);
+  padding:5px 14px;border-radius:20px;margin-bottom:26px}
+.chip-d{width:5px;height:5px;background:var(--p);border-radius:50%;animation:blink 2s ease-in-out infinite}
+h1{font-size:clamp(31px,5.5vw,54px);font-weight:700;line-height:1.09;letter-spacing:-1.8px;margin-bottom:16px}
+.h1g{display:block;background:linear-gradient(90deg,var(--p),var(--cy));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sub{color:var(--muted);font-size:15px;line-height:1.75;max-width:460px;margin:0 auto}
+
+/* INPUT */
+.inp-wrap{max-width:660px;margin:0 auto;padding:0 16px 32px}
+.inp-box{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
+  padding:5px 5px 5px 16px;display:flex;align-items:center;gap:8px;transition:border-color .25s,box-shadow .25s}
+.inp-box:focus-within{border-color:var(--p);box-shadow:0 0 0 4px var(--pglow),0 10px 40px rgba(0,0,0,.5)}
+.inp-ic{font-size:16px;color:var(--dim);flex-shrink:0}
+.inp-el{flex:1;background:none;border:none;outline:none;color:var(--text);
+  font-family:'JetBrains Mono',monospace;font-size:13px;padding:12px 0;min-width:0}
+.inp-el::placeholder{color:var(--dim)}
+.btn-go{background:linear-gradient(135deg,#a78bfa,#7c3aed);color:#fff;border:none;
+  padding:11px 20px;border-radius:10px;font-family:'Sora',sans-serif;font-size:13.5px;font-weight:600;
+  cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px;
+  transition:all .2s;flex-shrink:0;box-shadow:0 4px 16px rgba(124,58,237,.3)}
+.btn-go:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(124,58,237,.45)}
+.btn-go:active{transform:translateY(0)}
+.btn-go:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.inp-hint{display:flex;align-items:center;gap:9px;margin-top:11px;padding:0 2px;
+  font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+.sp{width:1px;height:8px;background:var(--border)}
+
+/* LOADER */
+.loader{display:none;flex-direction:column;align-items:center;gap:14px;padding:65px 20px;text-align:center}
+.loader.on{display:flex}
+.ring{width:46px;height:46px;border:2px solid var(--border);border-top-color:var(--p);border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-t{color:var(--muted);font-size:13px;font-family:'JetBrains Mono',monospace}
+
+/* ALERT */
+.alert{display:none;max-width:660px;margin:0 auto 18px;padding:0 16px}
+.alert.on{display:block}
+.abox{border-radius:var(--rs);padding:13px 16px;font-size:13px;display:flex;align-items:flex-start;gap:9px;line-height:1.6}
+.aerr{background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.22);color:var(--err)}
+
+/* RESULT */
+.result{display:none;max-width:660px;margin:0 auto;padding:0 16px 90px;animation:up .35s ease}
+.result.on{display:block}
+@keyframes up{from{opacity:0;transform:translateY(13px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.mcard{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:13px}
+.row-aut{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border)}
+.ava{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--p),#7c3aed);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;flex-shrink:0;overflow:hidden}
+.ava img{width:100%;height:100%;object-fit:cover}
+.aname{font-size:13.5px;font-weight:600}
+.ahandle{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.row-meta{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border)}
+.tbadge{font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:500;
+  padding:3px 9px;border-radius:5px;text-transform:uppercase;letter-spacing:.7px;flex-shrink:0}
+.tv{background:rgba(103,232,249,.1);color:var(--cy);border:1px solid rgba(103,232,249,.2)}
+.tp{background:rgba(167,139,250,.1);color:var(--p2);border:1px solid rgba(167,139,250,.2)}
+.mtitle{font-size:13px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* VIDEO PREVIEW */
+.vprev{position:relative;background:#050508;overflow:hidden}
+.vprev img{width:100%;height:210px;object-fit:cover;display:block;opacity:.72}
+.vover{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.2)}
+.pcircle{width:54px;height:54px;background:rgba(255,255,255,.12);backdrop-filter:blur(12px);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  border:1.5px solid rgba(255,255,255,.2);font-size:21px;padding-left:4px}
+.vmeta{position:absolute;bottom:10px;left:10px;right:10px;display:flex;gap:6px;flex-wrap:wrap}
+.vtag{font-size:10px;font-family:'JetBrains Mono',monospace;background:rgba(0,0,0,.65);
+  border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.7);padding:2px 8px;border-radius:5px}
+
+/* PHOTO GRID */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:3px;padding:3px}
+.pitem{position:relative;overflow:hidden;aspect-ratio:9/16;background:var(--s2);border-radius:5px}
+.pitem img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.pitem:hover img{transform:scale(1.05)}
+.pnum{position:absolute;top:6px;left:6px;min-width:20px;height:20px;padding:0 5px;
+  background:rgba(0,0,0,.72);border-radius:4px;display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-family:'JetBrains Mono',monospace;color:#fff}
+
+/* DOWNLOAD */
+.dsec{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.dsec-h{padding:13px 16px;border-bottom:1px solid var(--border);
+  font-size:10.5px;font-family:'JetBrains Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px}
+.dsec-b{padding:12px}
+.dl-list{display:flex;flex-direction:column;gap:8px}
+.dlb{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--rs);
+  border:1px solid var(--border);background:var(--s2);text-decoration:none;color:var(--text);transition:all .2s}
+.dlb:hover{border-color:var(--p);background:var(--pdim);transform:translateX(4px)}
+.dlb-ic{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.iv{background:rgba(103,232,249,.1)}.ia{background:var(--pdim)}.ip{background:rgba(74,222,128,.07)}
+.dlb-inf{flex:1}
+.dlb-lbl{font-size:13px;font-weight:500}
+.dlb-sub{font-size:10.5px;color:var(--muted);margin-top:1px;font-family:'JetBrains Mono',monospace}
+.dlb-arr{color:var(--dim);font-size:16px;transition:all .2s;flex-shrink:0}
+.dlb:hover .dlb-arr{transform:translateX(3px);color:var(--p)}
+.sep{height:1px;background:var(--border);margin:4px 0}
+
+footer{border-top:1px solid var(--border);padding:24px 34px;text-align:center;
+  color:var(--dim);font-size:11px;font-family:'JetBrains Mono',monospace;line-height:2}
+footer a{color:var(--p);text-decoration:none}
+
+@media(max-width:560px){
+  nav{padding:13px 14px}
+  .hero{padding:50px 14px 40px}
+  .pgrid{grid-template-columns:repeat(3,1fr)}
+  h1{letter-spacing:-1.1px}
+}
+</style>
+</head>
+<body>
+<div class="bg-fx"><div class="grid"></div></div>
+<div class="w">
+
+<nav>
+  <a class="logo" href="#">
+    <div class="logo-mark">⬡</div>
+    <div class="logo-name"><span class="lh">Hexa</span><span class="lt">Tok</span></div>
+  </a>
+  <div class="nav-r">
+    <div class="n-ok">Online</div>
+    <div class="n-pill">No Watermark</div>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="chip"><span class="chip-d"></span>Powered by tobyg74/tiktok-api-dl</div>
+  <h1>Download TikTok<span class="h1g">Tanpa Watermark.</span></h1>
+  <p class="sub">Paste link video atau slideshow TikTok — unduh bebas watermark. MP4 HD, foto individual, atau MP3.</p>
+</div>
+
+<div class="inp-wrap">
+  <div class="inp-box">
+    <span class="inp-ic">🔗</span>
+    <input class="inp-el" id="urlIn" type="url" placeholder="https://vt.tiktok.com/... atau link panjang" autocomplete="off"/>
+    <button class="btn-go" id="btnGo" onclick="run()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14m-6-6l6 6 6-6"/></svg>
+      Ambil
+    </button>
+  </div>
+  <div class="inp-hint">
+    <span>💡 Video &amp; slideshow foto TikTok</span>
+    <span class="sp"></span>
+    <span>Enter untuk mulai</span>
+  </div>
+</div>
+
+<div class="loader" id="loader">
+  <div class="ring"></div>
+  <div class="load-t">Mengambil konten...</div>
+</div>
+
+<div class="alert" id="alertW">
+  <div class="abox aerr"><span>⚠</span><span id="alertMsg"></span></div>
+</div>
+
+<div class="result" id="result"></div>
+
+<footer>
+  HexaTok · tidak berafiliasi dengan TikTok
+  <br/>
+  Backend: <a href="https://github.com/TobyG74/tiktok-api-dl" target="_blank">tobyg74/tiktok-api-dl</a>
+  · Hosted on <a href="https://vercel.com" target="_blank">Vercel</a>
+</footer>
+
+</div>
+<script>
+// ⬇ GANTI INI dengan URL Vercel kamu setelah deploy
+// Contoh: const API = 'https://hexatok-raynedvd.vercel.app/api/download';
+const API = 'https://hexatok.vercel.app/api/download';
+
+async function run() {
+  const url = document.getElementById('urlIn').value.trim();
+  if (!url) return showErr('Masukkan URL TikTok terlebih dahulu.');
+  if (!url.includes('tiktok.com') && !url.includes('vt.tiktok')) return showErr('Hanya mendukung link dari TikTok.');
+
+  hideErr(); hideResult();
+  setLoad(true);
+  document.getElementById('btnGo').disabled = true;
+
+  try {
+    const res = await fetch(`${API}?url=${encodeURIComponent(url)}`);
+    const data = await res.json();
+
+    if (!res.ok || data.status === 'error') {
+      throw new Error(data.message || 'Gagal mengambil konten.');
+    }
+
+    render(data);
+  } catch(e) {
+    showErr(e.message || 'Gagal terhubung ke server.');
+  } finally {
+    setLoad(false);
+    document.getElementById('btnGo').disabled = false;
+  }
+}
+
+function render(d) {
+  const isSlide = d.type === 'photo' && d.images && d.images.length > 0;
+  const name = d.author?.nickname || 'TikTok User';
+  const handle = d.author?.unique_id ? '@' + d.author.unique_id : '@user';
+  const avatar = d.author?.avatar || '';
+  const init = (name[0]||'T').toUpperCase();
+  const dur = d.duration ? fmtDur(d.duration) : '';
+
+  let h = '';
+
+  // MEDIA CARD
+  h += `<div class="mcard">`;
+  h += `<div class="row-aut">
+    <div class="ava">${avatar?`<img src="${x(avatar)}" onerror="this.style.display='none';this.parentElement.textContent='${init}'"/>`:init}</div>
+    <div><div class="aname">${x(name)}</div><div class="ahandle">${x(handle)}</div></div>
+  </div>`;
+  h += `<div class="row-meta">
+    <span class="tbadge ${isSlide?'tp':'tv'}">${isSlide?'🖼 Slideshow':'🎬 Video'}</span>
+    <span class="mtitle">${x(d.title||'Konten TikTok')}</span>
+  </div>`;
+
+  if (isSlide) {
+    h += `<div class="pgrid">`;
+    d.images.forEach((url,i) => {
+      h += `<div class="pitem"><img src="${x(url)}" loading="lazy"/><div class="pnum">${i+1}</div></div>`;
+    });
+    h += `</div>`;
+  } else {
+    const cov = d.cover || '';
+    h += `<div class="vprev">
+      ${cov?`<img src="${x(cov)}" alt="cover"/>`:`<div style="height:200px;background:#0a0a0e;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:13px">🎬 Cover tidak tersedia</div>`}
+      <div class="vover"><div class="pcircle">▶</div></div>
+      <div class="vmeta">${dur?`<span class="vtag">⏱ ${dur}</span>`:''}<span class="vtag">📱 TikTok</span></div>
+    </div>`;
+  }
+  h += `</div>`;
+
+  // DOWNLOAD SECTION
+  h += `<div class="dsec"><div class="dsec-h">↓ Pilihan Unduhan</div><div class="dsec-b"><div class="dl-list">`;
+
+  let any = false;
+  if (isSlide) {
+    d.images.forEach((url,i) => { any=true; h+=dlb('ip','🖼',`Unduh Foto ${i+1}`,'JPG · Tanpa watermark',url,`hexatok_foto_${i+1}.jpg`); });
+    if (d.audio_url) { any=true; h+=`<div class="sep"></div>`; h+=dlb('ia','🎵','Unduh MP3','Audio slideshow',d.audio_url,'hexatok_audio.mp3'); }
+  } else {
+    if (d.hd_url) { any=true; h+=dlb('iv','🎬','Unduh MP4 · HD','Tanpa watermark · Kualitas terbaik',d.hd_url,'hexatok_hd.mp4'); }
+    if (d.sd_url && d.sd_url!==d.hd_url) { any=true; h+=dlb('iv','📹','Unduh MP4 · SD','File lebih kecil',d.sd_url,'hexatok_sd.mp4'); }
+    if (d.audio_url) { any=true; h+=`<div class="sep"></div>`; h+=dlb('ia','🎵','Unduh MP3 Saja','Audio dari video',d.audio_url,'hexatok_audio.mp3'); }
+  }
+
+  if (!any) {
+    h += `<div style="padding:18px;text-align:center;color:var(--muted);font-size:13px">❌ Link download tidak ditemukan dari API.</div>`;
+  }
+
+  h += `</div></div></div>`;
+  showResult(h);
+}
+
+function dlb(ic,icon,lbl,sub,href,fn) {
+  return `<a class="dlb" href="${x(href)}" download="${fn}" target="_blank">
+    <div class="dlb-ic ${ic}">${icon}</div>
+    <div class="dlb-inf"><div class="dlb-lbl">${lbl}</div><div class="dlb-sub">${sub}</div></div>
+    <span class="dlb-arr">→</span>
+  </a>`;
+}
+
+function setLoad(v) { document.getElementById('loader').classList.toggle('on',v); }
+function showErr(msg) {
+  document.getElementById('alertMsg').textContent = msg;
+  document.getElementById('alertW').classList.add('on');
+  clearTimeout(showErr._t);
+  showErr._t = setTimeout(() => document.getElementById('alertW').classList.remove('on'), 10000);
+}
+function hideErr() { document.getElementById('alertW').classList.remove('on'); }
+function showResult(h) { const el=document.getElementById('result'); el.innerHTML=h; el.classList.add('on'); setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'nearest'}),60); }
+function hideResult() { const el=document.getElementById('result'); el.innerHTML=''; el.classList.remove('on'); }
+function fmtDur(s) { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+function x(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+document.getElementById('urlIn').addEventListener('keydown', e => { if(e.key==='Enter') run(); });
+</script>
+</body>
+</html>
