@@ -16,69 +16,54 @@ module.exports = async (req, res) => {
   if (!url.includes("tiktok.com")) return res.status(400).json({ status: "error", message: "Hanya mendukung URL TikTok" });
 
   try {
-    // Coba semua versi, ambil yang berhasil
     let result = null;
     for (const version of ["v1", "v2", "v3"]) {
       try {
         const r = await Downloader(url, { version, showOriginalResponse: true });
-        if (r && r.status === "success") {
-          result = r;
-          break;
-        }
-      } catch(e) {
-        continue;
-      }
+        if (r && r.status === "success") { result = r; break; }
+      } catch(e) { continue; }
     }
 
     if (!result) return res.status(500).json({ status: "error", message: "Semua versi API gagal" });
 
     const d = result.result;
 
-    // Log raw untuk debug (lihat di Vercel dashboard)
-    console.log("RAW RESULT:", JSON.stringify(d, null, 2));
-
-    // Deteksi tipe konten
     const isPhoto = d?.type === "image" ||
                     (d?.images && d.images.length > 0) ||
                     (d?.image && d.image.length > 0);
 
-    // Ekstrak video URL — coba semua kemungkinan field dari tobyg74/tiktok-api-dl
+    // Berdasarkan raw response yang terlihat:
+    // video.playAddr = URL video utama
+    // music.playUrl  = URL audio
+    // video.cover    = array thumbnail
     const hd_url =
-      d?.video?.[0] ||                    // v1: array
-      d?.video?.noWatermark ||            // v2/v3
+      d?.video?.playAddr ||
+      d?.video?.noWatermark ||
       d?.video?.noWatermark2 ||
       d?.video?.hdplay ||
       d?.video?.play ||
-      d?.nwm_video_url_HQ ||
-      d?.nwm_video_url ||
-      d?.play ||
+      d?.video?.[0] ||
       null;
 
     const sd_url =
-      d?.video?.[1] ||                    // v1: array index 1
+      d?.video?.downloadAddr ||
       d?.video?.watermark ||
-      d?.video?.play ||
-      d?.wmplay ||
+      d?.video?.[1] ||
       null;
 
-    // Ekstrak audio URL
     const audio_url =
+      d?.music?.playUrl ||
       d?.music?.play_url ||
       d?.music?.url ||
-      d?.music?.[0] ||
-      d?.music ||
+      (typeof d?.music === "string" ? d.music : null) ||
       null;
 
-    // Ekstrak cover/thumbnail
     const cover =
-      d?.cover?.[0] ||
-      d?.cover ||
+      (Array.isArray(d?.video?.cover) ? d.video.cover[0] : d?.video?.cover) ||
+      (Array.isArray(d?.cover) ? d.cover[0] : d?.cover) ||
       d?.dynamicCover?.[0] ||
-      d?.thumbnail ||
-      d?.video?.cover ||
       null;
 
-    // Ekstrak images untuk slideshow
     let images = null;
     if (isPhoto) {
       const rawImgs = d?.images || d?.image || [];
@@ -87,26 +72,22 @@ module.exports = async (req, res) => {
         .filter(u => u && u.startsWith("http"));
     }
 
-    const normalised = {
+    return res.status(200).json({
       status   : "ok",
       type     : isPhoto ? "photo" : "video",
-      title    : d?.description || d?.desc || d?.title || d?.caption || "",
+      title    : d?.desc || d?.description || d?.title || d?.caption || "",
       author   : {
-        nickname : d?.author?.nickname || d?.author?.name || d?.creator || "TikTok User",
+        nickname : d?.author?.nickname || d?.author?.name || "TikTok User",
         unique_id: d?.author?.username || d?.author?.unique_id || d?.author?.id || "user",
         avatar   : d?.author?.avatarLarger || d?.author?.avatar || d?.author?.avatarThumb || ""
       },
       cover,
       duration : parseInt(d?.duration) || 0,
       hd_url,
-      sd_url   : sd_url !== hd_url ? sd_url : null,
-      audio_url: typeof audio_url === "string" ? audio_url : null,
-      images,
-      // Kirim raw juga untuk debug di frontend
-      _raw     : d
-    };
-
-    return res.status(200).json(normalised);
+      sd_url   : (sd_url && sd_url !== hd_url) ? sd_url : null,
+      audio_url: audio_url || null,
+      images
+    });
 
   } catch (err) {
     console.error("[HexaTok Error]", err);
