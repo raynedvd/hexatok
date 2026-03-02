@@ -14,13 +14,37 @@ module.exports = async (req, res) => {
   const url = req.query.url || (req.body && req.body.url);
   if (!url) return res.status(400).json({ status: "error", message: "Parameter 'url' diperlukan" });
 
+  // MODE: proxy gambar supaya tidak kena hotlink block
+  // /api/download?proxy=1&url=https://...
+  if (req.query.proxy === "1" && req.query.url?.startsWith("http")) {
+    try {
+      const fetch = (await import("node-fetch")).default;
+      const imgRes = await fetch(req.query.url, {
+        headers: {
+          "Referer": "https://www.tiktok.com/",
+          "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15"
+        }
+      });
+      res.setHeader("Content-Type", imgRes.headers.get("content-type") || "image/jpeg");
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return imgRes.body.pipe(res);
+    } catch(e) {
+      return res.status(500).end();
+    }
+  }
+
   try {
-    // Coba v1 dulu, fallback v2/v3
     let result = null;
+    let usedVersion = null;
+
     for (const version of ["v1", "v2", "v3"]) {
       try {
         const r = await Downloader(url, { version });
-        if (r && r.status === "success") { result = r; break; }
+        if (r && r.status === "success") {
+          result = r;
+          usedVersion = version;
+          break;
+        }
       } catch(e) { continue; }
     }
 
@@ -28,55 +52,70 @@ module.exports = async (req, res) => {
 
     const d = result.result;
 
-    // Dari debug raw:
-    // v1: d.video = array URL strings ["url1", "url2", ...]
-    //     d.music = { playUrl: "..." }
-    //     d.author = { nickname, uniqueId, avatarThumb, ... }
-    //     d.desc = judul
-    //     d.cover = array URL strings
-    //     d.images = array (untuk slideshow)
-
     const isPhoto = d?.type === "image" ||
                     (Array.isArray(d?.images) && d.images.length > 0);
 
-    // Video: d.video adalah ARRAY
-    const videoArr = Array.isArray(d?.video) ? d.video : [];
-    const hd_url   = videoArr[0] || null;
-    const sd_url   = videoArr[1] && videoArr[1] !== hd_url ? videoArr[1] : null;
+    // Video URLs — v1 return array, v2/v3 return object
+    let hd_url = null, sd_url = null;
 
-    // Audio: d.music.playUrl
-    const audio_url = d?.music?.playUrl || d?.music?.play_url || null;
+    if (Array.isArray(d?.video)) {
+      // v1 format: array of URLs
+      hd_url = d.video[0] || null;
+      sd_url = d.video[1] && d.video[1] !== hd_url ? d.video[1] : null;
+    } else if (d?.video && typeof d.video === "object") {
+      // v2/v3 format: object dengan fields
+      hd_url = d.video.noWatermark || d.video.noWatermark2 ||
+               d.video.hdplay || d.video.playAddr || d.video.play || null;
+      sd_url = d.video.watermark || d.video.downloadAddr || null;
+      if (sd_url === hd_url) sd_url = null;
+    }
 
-    // Cover: d.cover adalah ARRAY
-    const coverArr = Array.isArray(d?.cover) ? d.cover : [];
-    const cover    = coverArr[0] || null;
+    // Audio
+    const audio_url = d?.music?.playUrl || d?.music?.play_url ||
+                      d?.music?.url || null;
+
+    // Cover — v1 return array
+    const coverRaw = Array.isArray(d?.cover) ? d.cover[0] :
+                     (d?.cover || d?.video?.cover || null);
+
+    // Proxy URL gambar supaya tidak kena hotlink
+    const BASE = `https://${req.headers.host}`;
+    const proxyCover = coverRaw
+      ? `${BASE}/api/download?proxy=1&url=${encodeURIComponent(coverRaw)}`
+      : null;
 
     // Author
-    const author = {
-      nickname : d?.author?.nickname || "TikTok User",
-      unique_id: d?.author?.uniqueId || d?.author?.unique_id || "user",
-      avatar   : d?.author?.avatarThumb || d?.author?.avatarMedium || d?.author?.avatarLarger || ""
-    };
+    const avatarRaw = d?.author?.avatarThumb || d?.author?.avatarMedium ||
+                      d?.author?.avatarLarger || d?.author?.avatar || null;
+    const proxyAvatar = avatarRaw
+      ? `${BASE}/api/download?proxy=1&url=${encodeURIComponent(avatarRaw)}`
+      : null;
 
-    // Images untuk slideshow
+    // Images slideshow
     let images = null;
     if (isPhoto && Array.isArray(d?.images)) {
       images = d.images
         .map(img => typeof img === "string" ? img : (img?.url || img?.urlList?.[0] || null))
-        .filter(u => u && u.startsWith("http"));
+        .filter(Boolean)
+        .map(imgUrl => `${BASE}/api/download?proxy=1&url=${encodeURIComponent(imgUrl)}`);
     }
 
     return res.status(200).json({
       status   : "ok",
       type     : isPhoto ? "photo" : "video",
       title    : d?.desc || d?.description || d?.title || "",
-      author,
-      cover,
+      author   : {
+        nickname : d?.author?.nickname || "TikTok User",
+        unique_id: d?.author?.uniqueId || d?.author?.unique_id || "user",
+        avatar   : proxyAvatar
+      },
+      cover    : proxyCover,
       duration : parseInt(d?.duration) || 0,
       hd_url,
       sd_url,
       audio_url,
-      images
+      images,
+      _version : usedVersion
     });
 
   } catch (err) {
