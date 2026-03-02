@@ -1,7 +1,6 @@
 const { Downloader } = require("@tobyg74/tiktok-api-dl");
 
 module.exports = async (req, res) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -12,86 +11,105 @@ module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Content-Type", "application/json");
 
-  // Ambil URL dari query atau body
   const url = req.query.url || (req.body && req.body.url);
-
-  if (!url) {
-    return res.status(400).json({
-      status: "error",
-      message: "Parameter 'url' diperlukan"
-    });
-  }
-
-  if (!url.includes("tiktok.com")) {
-    return res.status(400).json({
-      status: "error",
-      message: "Hanya mendukung URL dari TikTok"
-    });
-  }
+  if (!url) return res.status(400).json({ status: "error", message: "Parameter 'url' diperlukan" });
+  if (!url.includes("tiktok.com")) return res.status(400).json({ status: "error", message: "Hanya mendukung URL TikTok" });
 
   try {
-    // Coba version 1 dulu (paling stabil)
-    let result = await Downloader(url, {
-      version: "v1",
-      showOriginalResponse: false
-    });
-
-    // Kalau v1 gagal, coba v2
-    if (!result || result.status === "error") {
-      result = await Downloader(url, {
-        version: "v2",
-        showOriginalResponse: false
-      });
+    // Coba semua versi, ambil yang berhasil
+    let result = null;
+    for (const version of ["v1", "v2", "v3"]) {
+      try {
+        const r = await Downloader(url, { version, showOriginalResponse: true });
+        if (r && r.status === "success") {
+          result = r;
+          break;
+        }
+      } catch(e) {
+        continue;
+      }
     }
 
-    // Kalau v2 juga gagal, coba v3
-    if (!result || result.status === "error") {
-      result = await Downloader(url, {
-        version: "v3",
-        showOriginalResponse: false
-      });
-    }
+    if (!result) return res.status(500).json({ status: "error", message: "Semua versi API gagal" });
 
-    if (!result || result.status === "error") {
-      return res.status(500).json({
-        status: "error",
-        message: result?.message || "Gagal mengambil konten TikTok"
-      });
-    }
+    const d = result.result;
 
-    // Normalise response ke format yang konsisten
-    const data = result.result;
-    const isPhoto = data?.type === "image" || (data?.images && data.images.length > 0);
+    // Log raw untuk debug (lihat di Vercel dashboard)
+    console.log("RAW RESULT:", JSON.stringify(d, null, 2));
+
+    // Deteksi tipe konten
+    const isPhoto = d?.type === "image" ||
+                    (d?.images && d.images.length > 0) ||
+                    (d?.image && d.image.length > 0);
+
+    // Ekstrak video URL — coba semua kemungkinan field dari tobyg74/tiktok-api-dl
+    const hd_url =
+      d?.video?.[0] ||                    // v1: array
+      d?.video?.noWatermark ||            // v2/v3
+      d?.video?.noWatermark2 ||
+      d?.video?.hdplay ||
+      d?.video?.play ||
+      d?.nwm_video_url_HQ ||
+      d?.nwm_video_url ||
+      d?.play ||
+      null;
+
+    const sd_url =
+      d?.video?.[1] ||                    // v1: array index 1
+      d?.video?.watermark ||
+      d?.video?.play ||
+      d?.wmplay ||
+      null;
+
+    // Ekstrak audio URL
+    const audio_url =
+      d?.music?.play_url ||
+      d?.music?.url ||
+      d?.music?.[0] ||
+      d?.music ||
+      null;
+
+    // Ekstrak cover/thumbnail
+    const cover =
+      d?.cover?.[0] ||
+      d?.cover ||
+      d?.dynamicCover?.[0] ||
+      d?.thumbnail ||
+      d?.video?.cover ||
+      null;
+
+    // Ekstrak images untuk slideshow
+    let images = null;
+    if (isPhoto) {
+      const rawImgs = d?.images || d?.image || [];
+      images = rawImgs
+        .map(img => img?.url || img?.urlList?.[0] || (typeof img === "string" ? img : null))
+        .filter(u => u && u.startsWith("http"));
+    }
 
     const normalised = {
-      status  : "ok",
-      type    : isPhoto ? "photo" : "video",
-      title   : data?.description || data?.desc || data?.title || "",
-      author  : {
-        nickname  : data?.author?.nickname || data?.author?.username || "TikTok User",
-        unique_id : data?.author?.username || data?.author?.unique_id || "user",
-        avatar    : data?.author?.avatarLarger || data?.author?.avatar || ""
+      status   : "ok",
+      type     : isPhoto ? "photo" : "video",
+      title    : d?.description || d?.desc || d?.title || d?.caption || "",
+      author   : {
+        nickname : d?.author?.nickname || d?.author?.name || d?.creator || "TikTok User",
+        unique_id: d?.author?.username || d?.author?.unique_id || d?.author?.id || "user",
+        avatar   : d?.author?.avatarLarger || d?.author?.avatar || d?.author?.avatarThumb || ""
       },
-      cover   : data?.cover?.[0] || data?.dynamicCover?.[0] || data?.thumbnail || "",
-      duration: data?.duration || 0,
-      // Video URLs
-      hd_url  : data?.video?.noWatermark || data?.video?.hdplay || data?.video?.play || null,
-      sd_url  : data?.video?.play || data?.video?.watermark || null,
-      audio_url: data?.music?.play_url || data?.music?.url || null,
-      // Photo/slideshow
-      images  : isPhoto
-        ? (data?.images || []).map(img => img?.url || img || "").filter(u => u && u.startsWith("http"))
-        : null
+      cover,
+      duration : parseInt(d?.duration) || 0,
+      hd_url,
+      sd_url   : sd_url !== hd_url ? sd_url : null,
+      audio_url: typeof audio_url === "string" ? audio_url : null,
+      images,
+      // Kirim raw juga untuk debug di frontend
+      _raw     : d
     };
 
     return res.status(200).json(normalised);
 
   } catch (err) {
-    console.error("[HexaTok API Error]", err);
-    return res.status(500).json({
-      status : "error",
-      message: err.message || "Internal server error"
-    });
+    console.error("[HexaTok Error]", err);
+    return res.status(500).json({ status: "error", message: err.message || "Internal server error" });
   }
 };
-
