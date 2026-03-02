@@ -311,17 +311,27 @@ function dlbBtn(ic, icon, lbl, sub, href, filename) {
   </div>`;
 }
 
+// Counter download per sesi — biar nama file tidak numpuk
+const _dlCount = {};
+function nextName(fn) {
+  const key = fn.replace(/^hexatok_?\d*_?/, ''); // normalise key
+  _dlCount[key] = (_dlCount[key] || 0) + 1;
+  const n = _dlCount[key];
+  return fn.replace('hexatok_', `hexatok${n}_`);
+}
+
 async function forceDownload(url, filename, el) {
   if (el.classList.contains('downloading')) return;
   el.classList.add('downloading');
   el.querySelector('.dlb-arr').textContent = '↻';
+  const namedFile = nextName(filename);
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error('Gagal fetch');
     const blob = await res.blob();
     const a    = document.createElement('a');
     a.href     = URL.createObjectURL(blob);
-    a.download = filename;
+    a.download = namedFile;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
